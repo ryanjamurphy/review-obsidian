@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Add a link to the current note to a daily note on a future date (or a past date, you time traveller).",
   "main": "main.js",
-  "repository": "https://github.com/ryanjamurphy/review-obsidian.git",
+  "repository": "ryanjamurphy/review-obsidian",
   "scripts": {
     "dev": "rollup --config rollup.config.js -w",
     "build": "rollup --config rollup.config.js"

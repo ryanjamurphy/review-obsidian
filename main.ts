@@ -12,15 +12,15 @@ export default class Review extends Plugin {
 		// Check for the Natural Language Dates plugin. If not found, tell the user to install it/initialize it.
 		let naturalLanguageDates = app.plugins.getPlugin('nldates-obsidian');
 		if (!naturalLanguageDates) {
-            new Notice("The Natural Language Dates plugin was not found. The Review plugin requires the Natural Language Dates plugin. Please install it first and make sure it is enabled before using Review.");
-        }
+			new Notice("The Natural Language Dates plugin was not found. The Review plugin requires the Natural Language Dates plugin. Please install it first and make sure it is enabled before using Review.");
+		}
 
 		this.settings = (await this.loadData()) || new ReviewSettings();
 
 		this.addCommand({
 			id: 'future-review',
 			name: 'Add this note to a daily note for review',
-			
+
 			checkCallback: (checking: boolean) => { // If a note is currently active, open the plugin's modal to receive a date string.
 				let leaf = this.app.workspace.activeLeaf;
 				if (leaf) {
@@ -56,15 +56,15 @@ export default class Review extends Plugin {
 		if (!(inputDate === "Invalid date")) {
 			// get the current note name
 			let noteName = obsidianApp.workspace.activeLeaf.getDisplayText();
-			
-	
+
+
 			// check if the file exists
 			let files = obsidianApp.vault.getFiles();
 			const dateFile = files.filter(e => e.name === inputDate //hat-tip 🎩 to @MrJackPhil for this little workflow 
 				|| e.path === inputDate
 				|| e.basename === inputDate
 			)[0];
-			
+
 			console.log("File found:" + dateFile);
 			if (!dateFile) { //the file does not already exist
 				console.log("The daily note for the given date does not exist yet. Creating it, then appending the review section.")
@@ -74,12 +74,12 @@ export default class Review extends Plugin {
 			} else { //the file exists
 				console.log("The daily note already exists for the date given. Adding this note to it for review.")
 				let previousNoteText = "";
-				obsidianApp.vault.read(dateFile).then(function(result) { // Get the text in the note. Search it for ## Review and append to that section. Else, append ## Review and the link to the note for review.
+				obsidianApp.vault.read(dateFile).then(function (result) { // Get the text in the note. Search it for ## Review and append to that section. Else, append ## Review and the link to the note for review.
 					let previousNoteText = result;
 					console.log("Previous Note text:\n" + previousNoteText);
 					let newNoteText = "";
 					if (previousNoteText.includes(reviewHeading)) {
-						newNoteText = previousNoteText.replace(reviewHeading +"\n", reviewHeading +"\n- [[" + noteName + "]]\n");
+						newNoteText = previousNoteText.replace(reviewHeading + "\n", reviewHeading + "\n- [[" + noteName + "]]\n");
 					} else {
 						newNoteText = previousNoteText + "\n" + reviewHeading + "\n- [[" + noteName + "]]\n";
 					}
@@ -107,7 +107,7 @@ class ReviewModal extends Modal {
 	onOpen() {
 		let _this = this;
 		console.log(_this);
-		let {contentEl} = this;
+		let { contentEl } = this;
 		let inputDateField = new TextComponent(contentEl)
 			.setPlaceholder("tomorrow");
 		let inputButton = new ButtonComponent(contentEl)
@@ -119,35 +119,35 @@ class ReviewModal extends Modal {
 			});
 		inputDateField.inputEl.focus();
 		inputDateField.inputEl.addEventListener('keypress', function (keypressed) {
-            if (keypressed.key === 'Enter') {
-                var inputDate = inputDateField.getValue()
-                _this.app.plugins.getPlugin("review-obsidian").setReviewDate(inputDate);
-                _this.close();
-            }
-        });
+			if (keypressed.key === 'Enter') {
+				var inputDate = inputDateField.getValue()
+				_this.app.plugins.getPlugin("review-obsidian").setReviewDate(inputDate);
+				_this.close();
+			}
+		});
 	}
 
 	onClose() {
-		let {contentEl} = this;
+		let { contentEl } = this;
 		contentEl.empty();
 	}
 }
 
 class ReviewSettingTab extends PluginSettingTab {
 	display(): void {
-		let {containerEl} = this;
+		let { containerEl } = this;
 		const plugin: any = (this as any).plugin;
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', {text: 'Review settings'});
+		containerEl.createEl('h2', { text: 'Review settings' });
 
 		new Setting(containerEl)
 			.setName('Daily note location')
 			.setDesc('Set the path to your daily notes. Use the format "folder/subfolder". Do not use leading or trailing slashes "/".')
 			.addText((text) =>
 				text
-					.setPlaceholder('')
+					.setPlaceholder('†')
 					.setValue(plugin.settings.dailyNotesFolder)
 					.onChange((value) => {
 						plugin.settings.dailyNotesFolder = value;
@@ -155,20 +155,20 @@ class ReviewSettingTab extends PluginSettingTab {
 					})
 			);
 		new Setting(containerEl)
-		.setName('Review section heading')
-		.setDesc('Set the heading to use for the review section. BE CAREFUL: it must be unique in each daily note.')
-		.addText((text) =>
-			text
-				.setPlaceholder('## Review')
-				.setValue(plugin.settings.reviewSectionHeading)
-				.onChange((value) => {
-					if (value === "") {
-						plugin.settings.reviewSectionHeading = "## Review";
-					} else {
-						plugin.settings.reviewSectionHeading = value;
-					}
-					plugin.saveData(plugin.settings);
-				})
-		);
+			.setName('Review section heading')
+			.setDesc('Set the heading to use for the review section. BE CAREFUL: it must be unique in each daily note.')
+			.addText((text) =>
+				text
+					.setPlaceholder('## Review')
+					.setValue(plugin.settings.reviewSectionHeading)
+					.onChange((value) => {
+						if (value === "") {
+							plugin.settings.reviewSectionHeading = "## Review";
+						} else {
+							plugin.settings.reviewSectionHeading = value;
+						}
+						plugin.saveData(plugin.settings);
+					})
+			);
 	}
 }
