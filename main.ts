@@ -45,8 +45,14 @@ export default class Review extends Plugin {
 		let obsidianApp = this.app;
 		let naturalLanguageDates = obsidianApp.plugins.getPlugin('nldates-obsidian'); // Get the Natural Language Dates plugin.
 
+		if (!naturalLanguageDates) {
+			new Notice("The Natural Language Dates plugin is not available. Please make sure it is installed and enabled before trying again.");
+			return;
+		}
+
 		// Use the Natural Language Dates plugin's processDate method to convert the input date into a daily note title.
 		let inputDate = naturalLanguageDates.processDate(naturalLanguageDates, someDate);
+
 		console.log("Date string to use: " + inputDate);
 
 		// Get the folder path.
@@ -188,7 +194,7 @@ class ReviewSettingTab extends PluginSettingTab {
 			);
 		new Setting(containerEl)
 			.setName('Line prefix')
-			.setDesc('Set the prefix to use on each new line. E.g., use `- ` for bullets or `- [ ] ` for tasks. Include the trailing space.')
+			.setDesc('Set the prefix to use on each new line. E.g., use `- ` for bullets or `- [ ] ` for tasks. **Include the trailing space.**')
 			.addText((text) =>
 				text
 					.setPlaceholder('- ')
