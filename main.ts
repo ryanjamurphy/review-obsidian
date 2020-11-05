@@ -44,7 +44,12 @@ export default class Review extends Plugin {
 	setReviewDate(someDate: string) {
 		let obsidianApp = this.app;
 		let naturalLanguageDates = obsidianApp.plugins.getPlugin('nldates-obsidian'); // Get the Natural Language Dates plugin.
+
+		// Use the Natural Language Dates plugin's processDate method to convert the input date into a daily note title.
 		let inputDate = naturalLanguageDates.processDate(naturalLanguageDates, someDate);
+		console.log("Date string to use: " + inputDate);
+
+		// Get the folder path.
 		let notesFolder = this.settings.dailyNotesFolder;
 		let notesPath = "";
 		if (notesFolder === "") {
@@ -53,9 +58,15 @@ export default class Review extends Plugin {
 			notesPath = "/" + notesFolder + "/";
 		}
 		console.log("The path to daily notes: " + notesPath);
+
+		// Get the review section header.
 		let reviewHeading = this.settings.reviewSectionHeading;
 		console.log("The review section heading is: " + reviewHeading);
-		console.log("Date string to use: " + inputDate);
+
+		// Get the line prefix.
+		let reviewLinePrefix = this.settings.linePrefix;
+		console.log("The line prefix is: " + reviewLinePrefix);
+
 		if (!(inputDate === "Invalid date")) {
 			// get the current note name
 			let noteName = obsidianApp.workspace.activeLeaf.getDisplayText();
@@ -71,7 +82,7 @@ export default class Review extends Plugin {
 			console.log("File found:" + dateFile);
 			if (!dateFile) { //the file does not already exist
 				console.log("The daily note for the given date does not exist yet. Creating it, then appending the review section.")
-				let noteText = reviewHeading + "\n- [[" + noteName + "]]";
+				let noteText = reviewHeading + "\n" + reviewLinePrefix + "[[" + noteName + "]]";
 				let newDateFile = obsidianApp.vault.create(notesPath + inputDate + ".md", noteText);
 				new Notice("Set note \"" + noteName + "\" for review on " + inputDate + ".");
 			} else { //the file exists
@@ -82,9 +93,9 @@ export default class Review extends Plugin {
 					console.log("Previous Note text:\n" + previousNoteText);
 					let newNoteText = "";
 					if (previousNoteText.includes(reviewHeading)) {
-						newNoteText = previousNoteText.replace(reviewHeading, reviewHeading + "\n- [[" + noteName + "]]\n");
+						newNoteText = previousNoteText.replace(reviewHeading, reviewHeading + "\n" + reviewLinePrefix + "[[" + noteName + "]]\n");
 					} else {
-						newNoteText = previousNoteText + "\n" + reviewHeading + "\n- [[" + noteName + "]]\n";
+						newNoteText = previousNoteText + "\n" + reviewHeading + "\n" + reviewLinePrefix + "[[" + noteName + "]]\n";
 					}
 					obsidianApp.vault.modify(dateFile, newNoteText);
 					new Notice("Set note \"" + noteName + "\" for review on " + inputDate + ".");
@@ -100,6 +111,7 @@ export default class Review extends Plugin {
 class ReviewSettings {
 	dailyNotesFolder = "";
 	reviewSectionHeading = "## Review";
+	linePrefix = "- ";
 }
 
 class ReviewModal extends Modal {
@@ -171,6 +183,18 @@ class ReviewSettingTab extends PluginSettingTab {
 						} else {
 							plugin.settings.reviewSectionHeading = value;
 						}
+						plugin.saveData(plugin.settings);
+					})
+			);
+		new Setting(containerEl)
+			.setName('Line prefix')
+			.setDesc('Set the prefix to use on each new line. E.g., use `- ` for bullets or `- [ ] ` for tasks. Include the trailing space.')
+			.addText((text) =>
+				text
+					.setPlaceholder('- ')
+					.setValue(plugin.settings.linePrefix)
+					.onChange((value) => {
+						plugin.settings.linePrefix = value;
 						plugin.saveData(plugin.settings);
 					})
 			);
