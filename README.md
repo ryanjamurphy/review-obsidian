@@ -21,7 +21,7 @@ Make sure you _review_ (heh) the plugin's settings to assign:
 - The plugin then creates a new daily note for the given day with a new review section (or appends this section to the given daily note, if one already existed).
 
 ### Demo
-![A gif showing the use of this plugin as described above.](https://i.imgur.com/SiWYInJ.mp4)
+![A gif showing the use of this plugin as described above.](https://i.imgur.com/9AqrSKy.gif)
 
 ### Manually installing the plugin
 
