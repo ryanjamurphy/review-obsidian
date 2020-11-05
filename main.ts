@@ -48,7 +48,7 @@ export default class Review extends Plugin {
 		let notesFolder = this.settings.dailyNotesFolder;
 		let notesPath = "";
 		if (notesFolder === "") {
-			let notesPath = "/";
+			let notesPath = "/"; // If the user is using the root for their daily notes, don't add a second /.
 		} else {
 			let notesPath = "/" + notesFolder + "/";
 		}
