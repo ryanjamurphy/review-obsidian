@@ -1,35 +1,28 @@
-## Obsidian Sample Plugin
+## Review
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+A plugin for [Obsidian](https://obsidian.md).
 
-This project uses Typescript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in Typescript Definition format, which contains TSDoc comments describing what it does.
+Review allows you to add the current note to a future note (or past note, if you want to, I guess) to make sure you review it again on that date.
 
-**Note:** The Obsidian API is still in early alpha and is subject to change at any time!
+This can be useful for project review (e.g., Getting Things Done), as a tickler file (e.g., Getting Things Done, again), spaced repetition, and to remind you of past failures or that embarrassing thing you did yesterday. 
 
-### Releasing new releases
+Review integrates with (and therefore requires) the [Natural Language Dates plugin](https://github.com/argenos/nldates-obsidian). Please install it first.
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments.
-- Publish the release.
-
-### Adding your plugin to the community plugin list
-
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+### Setup
+Make sure you _review_ (heh) the plugin's settings to assign:
+- Your daily notes folder (defaults to `/`); and
+- A heading for the review section (defaults to `## Review`).
 
 ### How to use
 
-- Clone this repo.
-- `npm i` or `yarn` to install dependencies
-- `npm run dev` to start compilation in watch mode.
+- Use the command palette to access the Review command (or assign a hotkey to it).
+- Once you invoke the command palette, the plugin asks for a date. Use natural language ("tomorrow," "in three weeks," "two days ago," "November 5")
+- The plugin relies on the Natural Language Dates plugin to translate your given date into a daily note name as per your settings in that plugin
+- The plugin then creates a new daily note for the given day with a new review section (or appends this section to the given daily note, if one already existed).
+
+### Demo
+![A gif showing the use of this plugin as described above.](https://i.imgur.com/SiWYInJ.mp4)
 
 ### Manually installing the plugin
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
-
-### API Documentation
-
-See https://github.com/obsidianmd/obsidian-api
+- Copy `main.js` and `manifest.json` to your vault's plugins folder, under `[YourVaultFolder]/.obsidian/plugins/review-obsidian/`.
