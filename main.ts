@@ -45,7 +45,8 @@ export default class Review extends Plugin {
 		let obsidianApp = this.app;
 		let naturalLanguageDates = obsidianApp.plugins.getPlugin('nldates-obsidian'); // Get the Natural Language Dates plugin.
 		let inputDate = naturalLanguageDates.processDate(naturalLanguageDates, someDate);
-		let notesFolder = this.settings.dailyNoteLocation;
+		let notesFolder = this.settings.dailyNotesFolder;
+		let notesPath = "";
 		if (notesFolder === "") {
 			let notesPath = "/";
 		} else {
@@ -95,7 +96,7 @@ export default class Review extends Plugin {
 }
 
 class ReviewSettings {
-	dailyNoteLocation = "";
+	dailyNotesFolder = "";
 	reviewSectionHeading = "## Review";
 }
 
