@@ -48,10 +48,11 @@ export default class Review extends Plugin {
 		let notesFolder = this.settings.dailyNotesFolder;
 		let notesPath = "";
 		if (notesFolder === "") {
-			let notesPath = "/"; // If the user is using the root for their daily notes, don't add a second /.
+			notesPath = "/"; // If the user is using the root for their daily notes, don't add a second /.
 		} else {
-			let notesPath = "/" + notesFolder + "/";
+			notesPath = "/" + notesFolder + "/";
 		}
+		console.log("The path to daily notes: " + notesPath);
 		let reviewHeading = this.settings.reviewSectionHeading;
 		console.log("Date string to use: " + inputDate);
 		if (!(inputDate === "Invalid date")) {
@@ -151,6 +152,7 @@ class ReviewSettingTab extends PluginSettingTab {
 					.setPlaceholder('†')
 					.setValue(plugin.settings.dailyNotesFolder)
 					.onChange((value) => {
+						console.log("The new daily notes folder:" + value);
 						plugin.settings.dailyNotesFolder = value;
 						plugin.saveData(plugin.settings);
 					})
