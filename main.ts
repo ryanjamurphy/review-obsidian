@@ -54,6 +54,7 @@ export default class Review extends Plugin {
 		}
 		console.log("The path to daily notes: " + notesPath);
 		let reviewHeading = this.settings.reviewSectionHeading;
+		console.log("The review section heading is: " + reviewHeading);
 		console.log("Date string to use: " + inputDate);
 		if (!(inputDate === "Invalid date")) {
 			// get the current note name
@@ -81,7 +82,7 @@ export default class Review extends Plugin {
 					console.log("Previous Note text:\n" + previousNoteText);
 					let newNoteText = "";
 					if (previousNoteText.includes(reviewHeading)) {
-						newNoteText = previousNoteText.replace(reviewHeading + "\n", reviewHeading + "\n- [[" + noteName + "]]\n");
+						newNoteText = previousNoteText.replace(reviewHeading, reviewHeading + "\n- [[" + noteName + "]]\n");
 					} else {
 						newNoteText = previousNoteText + "\n" + reviewHeading + "\n- [[" + noteName + "]]\n";
 					}
