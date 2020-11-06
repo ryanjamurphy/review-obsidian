@@ -51,7 +51,8 @@ export default class Review extends Plugin {
 		}
 
 		// Use the Natural Language Dates plugin's processDate method to convert the input date into a daily note title.
-		let inputDate = naturalLanguageDates.processDate(naturalLanguageDates, someDate);
+		let parsedResult = naturalLanguageDates.parseDate(someDate);
+		let inputDate = parsedResult.formattedString;
 
 		console.log("Date string to use: " + inputDate);
 
@@ -73,7 +74,8 @@ export default class Review extends Plugin {
 		let reviewLinePrefix = this.settings.linePrefix;
 		console.log("The line prefix is: " + reviewLinePrefix);
 
-		if (!(inputDate === "Invalid date")) {
+		// If the date is recognized and valid
+		if (parsedResult.moment.isValid()) {
 			// get the current note name
 			let noteName = obsidianApp.workspace.activeLeaf.getDisplayText();
 
