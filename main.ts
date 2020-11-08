@@ -78,9 +78,11 @@ export default class Review extends Plugin {
 		if (parsedResult.moment.isValid()) {
 			// get the current note name
 			let noteName = obsidianApp.workspace.activeLeaf.getDisplayText();
+			let noteFile = obsidianApp.workspace.activeLeaf.view.file;
+			let noteLink = obsidianApp.metadataCache.fileToLinktext(noteFile, noteFile.path, true);
+			
 
-
-			// check if the file exists
+			// check if the daily note file exists
 			let files = obsidianApp.vault.getFiles();
 			const dateFile = files.filter(e => e.name === inputDate //hat-tip 🎩 to @MrJackPhil for this little workflow 
 				|| e.path === inputDate
@@ -90,7 +92,7 @@ export default class Review extends Plugin {
 			console.log("File found:" + dateFile);
 			if (!dateFile) { //the file does not already exist
 				console.log("The daily note for the given date does not exist yet. Creating it, then appending the review section.")
-				let noteText = reviewHeading + "\n" + reviewLinePrefix + "[[" + noteName + "]]";
+				let noteText = reviewHeading + "\n" + reviewLinePrefix + "[[" + noteLink + "]]";
 				let newDateFile = obsidianApp.vault.create(notesPath + inputDate + ".md", noteText);
 				new Notice("Set note \"" + noteName + "\" for review on " + inputDate + ".");
 			} else { //the file exists
@@ -101,9 +103,9 @@ export default class Review extends Plugin {
 					console.log("Previous Note text:\n" + previousNoteText);
 					let newNoteText = "";
 					if (previousNoteText.includes(reviewHeading)) {
-						newNoteText = previousNoteText.replace(reviewHeading, reviewHeading + "\n" + reviewLinePrefix + "[[" + noteName + "]]\n");
+						newNoteText = previousNoteText.replace(reviewHeading, reviewHeading + "\n" + reviewLinePrefix + "[[" + noteLink + "]]\n");
 					} else {
-						newNoteText = previousNoteText + "\n" + reviewHeading + "\n" + reviewLinePrefix + "[[" + noteName + "]]\n";
+						newNoteText = previousNoteText + "\n" + reviewHeading + "\n" + reviewLinePrefix + "[[" + noteLink + "]]\n";
 					}
 					obsidianApp.vault.modify(dateFile, newNoteText);
 					new Notice("Set note \"" + noteName + "\" for review on " + inputDate + ".");
@@ -163,7 +165,7 @@ class ReviewSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', { text: 'Review settings' });
+		containerEl.createEl('h2', { text: 'Review Settings' });
 
 		new Setting(containerEl)
 			.setName('Daily note location')
