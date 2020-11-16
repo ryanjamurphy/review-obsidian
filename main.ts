@@ -50,6 +50,9 @@ export default class Review extends Plugin {
 			return;
 		}
 
+		if (someDate === "") {
+			someDate = this.settings.defaultReviewDate;
+		}
 		// Use the Natural Language Dates plugin's processDate method to convert the input date into a daily note title.
 		let parsedResult = naturalLanguageDates.parseDate(someDate);
 		let inputDate = parsedResult.formattedString;
@@ -122,6 +125,7 @@ class ReviewSettings {
 	dailyNotesFolder = "";
 	reviewSectionHeading = "## Review";
 	linePrefix = "- ";
+	defaultReviewDate = "";
 }
 
 class ReviewModal extends Modal {
@@ -172,7 +176,7 @@ class ReviewSettingTab extends PluginSettingTab {
 			.setDesc('Set the path to your daily notes. Use the format "folder/subfolder". Do not use leading or trailing slashes "/".')
 			.addText((text) =>
 				text
-					.setPlaceholder('†')
+					.setPlaceholder('')
 					.setValue(plugin.settings.dailyNotesFolder)
 					.onChange((value) => {
 						console.log("The new daily notes folder:" + value);
@@ -208,5 +212,24 @@ class ReviewSettingTab extends PluginSettingTab {
 						plugin.saveData(plugin.settings);
 					})
 			);
-	}
+		new Setting(containerEl)
+			.setName('Default review date')
+			.setDesc('Set a default date to be used when no date is entered. Use natural language: "Next Monday", "November 5th", and "tomorrow" all work.')
+			.addText((text) => 
+				text
+					.setPlaceholder('')
+					.setValue(plugin.settings.defaultReviewDate)
+					.onChange((value) => {
+						plugin.settings.defaultReviewDate = value;
+						plugin.saveData(plugin.settings);
+					})
+			);
+		
+		// containerEl.createEl('h3', { text: 'Preset review schedules' });
+
+		/*
+		TKTKTK: Figure out how to add a function to a button inside the setting element. Currently `doSomething`, below, throws errors.
+		containerEl.createEl('button', { text: "Add a new review schedule preset", attr: { onclick: "doSomething({ console.log('button clicked') });"}});
+		*/
+	}	
 }
