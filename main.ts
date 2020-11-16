@@ -33,6 +33,22 @@ export default class Review extends Plugin {
 			}
 		});
 
+		this.addCommand({
+			id: 'future-review-block',
+			name: 'Add this block to a daily note for review',
+
+			checkCallback: (checking: boolean) => {
+				let leaf = this.app.workspace.activeLeaf;
+				if (leaf) {
+					if (!checking) {
+						new ReviewBlockModal(this.app).open();
+					}
+					return true;
+				}
+				return false;
+			}
+		});
+
 		this.addSettingTab(new ReviewSettingTab(this.app, this));
 
 	}
@@ -41,7 +57,39 @@ export default class Review extends Plugin {
 		console.log('The Review Dates plugin has been disabled and unloaded.');
 	}
 
-	setReviewDate(someDate: string) {
+	createBlockHash(inputText: string): string { // Credit to https://stackoverflow.com/a/1349426
+		let obsidianApp = this.app;
+
+		let result = '';
+		var characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+		var charactersLength = characters.length;
+		for ( var i = 0; i < 7; i++ ) {
+		   result += characters.charAt(Math.floor(Math.random() * charactersLength));
+		}
+		return result;
+	}
+
+	getBlock(inputLine: string, noteFile: object): string { //Returns the string of a block ID if block is found, or "" if not.
+		let obsidianApp = this.app;
+		let noteBlocks = obsidianApp.metadataCache.getFileCache(noteFile).blocks;
+		console.log("Checking if line '" + inputLine + "' is a block.");
+		let blockString = "";
+		if (noteBlocks) { // the file does contain blocks. If not, return ""
+			for (let eachBlock in noteBlocks) { // iterate through the blocks. 
+				console.log("Checking block ^" + eachBlock);
+				let blockRegExp = new RegExp("(" + eachBlock + ")$", "gim");
+				if (inputLine.match(blockRegExp)) { // if end of inputLine matches block, return it
+					blockString = eachBlock;
+					console.log("Found block ^" + blockString);
+					return blockString;
+				} 
+			}
+			return blockString;
+		} 
+		return blockString;
+	}
+
+	setReviewDate(someDate: string, someBlock?: string) {
 		let obsidianApp = this.app;
 		let naturalLanguageDates = obsidianApp.plugins.getPlugin('nldates-obsidian'); // Get the Natural Language Dates plugin.
 
@@ -83,7 +131,25 @@ export default class Review extends Plugin {
 			let noteName = obsidianApp.workspace.activeLeaf.getDisplayText();
 			let noteFile = obsidianApp.workspace.activeLeaf.view.file;
 			let noteLink = obsidianApp.metadataCache.fileToLinktext(noteFile, noteFile.path, true);
-			
+
+			if (someBlock != undefined) {
+				console.log("Checking for block:");
+				let lineBlockID = this.getBlock(someBlock, noteFile);
+				console.log(lineBlockID);
+
+				if (this.getBlock(someBlock, noteFile) === "") { // The line is not already a block
+					console.log("This line is not currently a block. Adding a block ID.");
+					lineBlockID = this.createBlockHash(someBlock).toString();
+					let lineWithBlock = someBlock + " ^" + lineBlockID;
+					obsidianApp.vault.read(noteFile).then(function (result) {
+						let previousNoteText = result;
+						let newNoteText = previousNoteText.replace(someBlock, lineWithBlock);
+						obsidianApp.vault.modify(noteFile, newNoteText);
+					})
+				}
+				noteLink = noteLink + "#^" + lineBlockID;
+				reviewLinePrefix = "!";
+			}
 
 			// check if the daily note file exists
 			let files = obsidianApp.vault.getFiles();
@@ -91,9 +157,9 @@ export default class Review extends Plugin {
 				|| e.path === inputDate
 				|| e.basename === inputDate
 			)[0];
-
 			console.log("File found:" + dateFile);
-			if (!dateFile) { //the file does not already exist
+
+			if (!dateFile) { //the date file does not already exist
 				console.log("The daily note for the given date does not exist yet. Creating it, then appending the review section.")
 				let noteText = reviewHeading + "\n" + reviewLinePrefix + "[[" + noteLink + "]]";
 				let newDateFile = obsidianApp.vault.create(notesPath + inputDate + ".md", noteText);
@@ -102,7 +168,7 @@ export default class Review extends Plugin {
 				console.log("The daily note already exists for the date given. Adding this note to it for review.")
 				let previousNoteText = "";
 				obsidianApp.vault.read(dateFile).then(function (result) { // Get the text in the note. Search it for ## Review and append to that section. Else, append ## Review and the link to the note for review.
-					let previousNoteText = result;
+					previousNoteText = result;
 					console.log("Previous Note text:\n" + previousNoteText);
 					let newNoteText = "";
 					if (previousNoteText.includes(reviewHeading)) {
@@ -151,6 +217,43 @@ class ReviewModal extends Modal {
 			if (keypressed.key === 'Enter') {
 				var inputDate = inputDateField.getValue()
 				_this.app.plugins.getPlugin("review-obsidian").setReviewDate(inputDate);
+				_this.close();
+			}
+		});
+	}
+
+	onClose() {
+		let { contentEl } = this;
+		contentEl.empty();
+	}
+}
+
+class ReviewBlockModal extends Modal {
+	constructor(app: App) {
+		super(app);
+	}
+
+	onOpen() {
+		let _this = this;
+		let editor = this.app.workspace.activeLeaf.view.sourceMode.cmEditor;
+		let cursor = editor.getCursor();
+		let lineText = editor.getLine(cursor.line);
+		console.log(_this);
+		let { contentEl } = this;
+		let inputDateField = new TextComponent(contentEl)
+			.setPlaceholder("tomorrow");
+		let inputButton = new ButtonComponent(contentEl)
+			.setButtonText("Set Review Date")
+			.onClick(() => {
+				let inputDate = inputDateField.getValue();
+				_this.app.plugins.getPlugin("review-obsidian").setReviewDate(inputDate, lineText);
+				this.close();
+			});
+		inputDateField.inputEl.focus();
+		inputDateField.inputEl.addEventListener('keypress', function (keypressed) {
+			if (keypressed.key === 'Enter') {
+				var inputDate = inputDateField.getValue()
+				_this.app.plugins.getPlugin("review-obsidian").setReviewDate(inputDate, lineText);
 				_this.close();
 			}
 		});
