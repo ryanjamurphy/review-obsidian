@@ -148,7 +148,7 @@ export default class Review extends Plugin {
 					})
 				}
 				noteLink = noteLink + "#^" + lineBlockID;
-				reviewLinePrefix = "!";
+				reviewLinePrefix = this.settings.blockLinePrefix;
 			}
 
 			// check if the daily note file exists
@@ -172,9 +172,9 @@ export default class Review extends Plugin {
 					console.log("Previous Note text:\n" + previousNoteText);
 					let newNoteText = "";
 					if (previousNoteText.includes(reviewHeading)) {
-						newNoteText = previousNoteText.replace(reviewHeading, reviewHeading + "\n" + reviewLinePrefix + "[[" + noteLink + "]]\n");
+						newNoteText = previousNoteText.replace(reviewHeading, reviewHeading + "\n" + reviewLinePrefix + "[[" + noteLink + "]]");
 					} else {
-						newNoteText = previousNoteText + "\n" + reviewHeading + "\n" + reviewLinePrefix + "[[" + noteLink + "]]\n";
+						newNoteText = previousNoteText + "\n" + reviewHeading + "\n" + reviewLinePrefix + "[[" + noteLink + "]]";
 					}
 					obsidianApp.vault.modify(dateFile, newNoteText);
 					new Notice("Set note \"" + noteName + "\" for review on " + inputDate + ".");
@@ -191,7 +191,8 @@ class ReviewSettings {
 	dailyNotesFolder = "";
 	reviewSectionHeading = "## Review";
 	linePrefix = "- ";
-	defaultReviewDate = "";
+	defaultReviewDate = "tomorrow";
+	blockLinePrefix = "!";
 }
 
 class ReviewModal extends Modal {
@@ -204,7 +205,7 @@ class ReviewModal extends Modal {
 		console.log(_this);
 		let { contentEl } = this;
 		let inputDateField = new TextComponent(contentEl)
-			.setPlaceholder("tomorrow");
+			.setPlaceholder(this.app.plugins.getPlugin("review-obsidian").settings.defaultReviewDate);
 		let inputButton = new ButtonComponent(contentEl)
 			.setButtonText("Set Review Date")
 			.onClick(() => {
@@ -241,7 +242,7 @@ class ReviewBlockModal extends Modal {
 		console.log(_this);
 		let { contentEl } = this;
 		let inputDateField = new TextComponent(contentEl)
-			.setPlaceholder("tomorrow");
+			.setPlaceholder(this.app.plugins.getPlugin("review-obsidian").settings.defaultReviewDate);
 		let inputButton = new ButtonComponent(contentEl)
 			.setButtonText("Set Review Date")
 			.onClick(() => {
@@ -312,6 +313,18 @@ class ReviewSettingTab extends PluginSettingTab {
 					.setValue(plugin.settings.linePrefix)
 					.onChange((value) => {
 						plugin.settings.linePrefix = value;
+						plugin.saveData(plugin.settings);
+					})
+			);
+		new Setting(containerEl)
+			.setName('Block review line prefix')
+			.setDesc('Set the prefix used when adding blocks to daily notes with Review. Use e.g., `- [ ] ` to link the block as a task, or `!` to create embeds.')
+			.addText((text) => 
+				text
+					.setPlaceholder('!')
+					.setValue(plugin.settings.blockLinePrefix)
+					.onChange((value) => {
+						plugin.settings.blockLinePrefix = value;
 						plugin.saveData(plugin.settings);
 					})
 			);
