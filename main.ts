@@ -1,4 +1,5 @@
 import { App, ButtonComponent, Modal, Notice, Plugin, PluginSettingTab, Setting, TextComponent } from 'obsidian';
+import { createDailyNote } from 'obsidian-daily-notes-interface';
 
 export default class Review extends Plugin {
 	settings: ReviewSettings;
@@ -89,7 +90,7 @@ export default class Review extends Plugin {
 		return blockString;
 	}
 
-	setReviewDate(someDate: string, someBlock?: string) {
+	async setReviewDate(someDate: string, someBlock?: string) {
 		let obsidianApp = this.app;
 		let naturalLanguageDates = obsidianApp.plugins.getPlugin('nldates-obsidian'); // Get the Natural Language Dates plugin.
 
@@ -162,9 +163,18 @@ export default class Review extends Plugin {
 			if (!dateFile) { //the date file does not already exist
 				console.log("The daily note for the given date does not exist yet. Creating it, then appending the review section.")
 				let noteText = reviewHeading + "\n" + reviewLinePrefix + "[[" + noteLink + "]]";
-				let newDateFile = obsidianApp.vault.create(notesPath + inputDate + ".md", noteText);
+				// let newDateFile = obsidianApp.vault.create(notesPath + inputDate + ".md", noteText); //previous approach
+				let newDateFile = await createDailyNote(parsedResult.moment); // Use @liamcain's obsidian-daily-notes-interface to create a daily note with core-defined templates
+				let templateText = await obsidianApp.vault.read(newDateFile);
+				//console.log(templateText); // for debugging
+				if (templateText.includes(reviewHeading)) {
+					noteText = templateText.replace(reviewHeading, noteText);
+				} else {
+					noteText = templateText + "\n" + noteText;
+				}
+				obsidianApp.vault.modify(newDateFile, noteText);
 				new Notice("Set note \"" + noteName + "\" for review on " + inputDate + ".");
-			} else { //the file exists
+			} else {
 				console.log("The daily note already exists for the date given. Adding this note to it for review.")
 				let previousNoteText = "";
 				obsidianApp.vault.read(dateFile).then(function (result) { // Get the text in the note. Search it for ## Review and append to that section. Else, append ## Review and the link to the note for review.
@@ -179,7 +189,7 @@ export default class Review extends Plugin {
 					obsidianApp.vault.modify(dateFile, newNoteText);
 					new Notice("Set note \"" + noteName + "\" for review on " + inputDate + ".");
 				});
-			}
+			}			
 		} else {
 			new Notice("You've entered an invalid date (note that \"two weeks\" will not work, but \"in two weeks\" will). The note was not set for review. Please try again.");
 		}
