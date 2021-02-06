@@ -1,22 +1,36 @@
 import { App, ButtonComponent, Modal, Notice, Plugin, PluginSettingTab, Setting, TextComponent } from 'obsidian';
 import { createDailyNote } from 'obsidian-daily-notes-interface';
 
+interface IReviewSettings {
+	dailyNotesFolder: string;
+	reviewSectionHeading: string;
+	linePrefix: string;
+	defaultReviewDate: string;
+	blockLinePrefix: string;
+}
+
+const DEFAULT_SETTINGS: IReviewSettings = {
+	dailyNotesFolder: "",
+	reviewSectionHeading: "## Review",
+	linePrefix: "- ",
+	defaultReviewDate: "tomorrow",
+	blockLinePrefix: "!",
+}
+
+
 export default class Review extends Plugin {
-	settings: ReviewSettings;
+	settings: IReviewSettings;
 
 	async onload() {
 		console.log('Loading the Review plugin.');
 
-		// Check that plugins can be accessed.
-		console.log(app.plugins.plugins);
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, (await this.loadData()))
 
-		// Check for the Natural Language Dates plugin. If not found, tell the user to install it/initialize it.
-		let naturalLanguageDates = app.plugins.getPlugin('nldates-obsidian');
-		if (!naturalLanguageDates) {
-			new Notice("The Natural Language Dates plugin was not found. The Review plugin requires the Natural Language Dates plugin. Please install it first and make sure it is enabled before using Review.");
+		if (this.app.workspace.layoutReady) {
+			this.onLayoutReady();
+		} else {
+			this.app.workspace.on("layout-ready", this.onLayoutReady.bind(this));
 		}
-
-		this.settings = (await this.loadData()) || new ReviewSettings();
 
 		this.addCommand({
 			id: 'future-review',
@@ -54,13 +68,20 @@ export default class Review extends Plugin {
 
 	}
 
+	onLayoutReady() {
+		// Check for the Natural Language Dates plugin after all the plugins are loaded.
+		// If not found, tell the user to install it/initialize it.
+		let naturalLanguageDates = (<any>this.app).plugins.getPlugin('nldates-obsidian');
+		if (!naturalLanguageDates) {
+			new Notice("The Natural Language Dates plugin was not found. The Review plugin requires the Natural Language Dates plugin. Please install it first and make sure it is enabled before using Review.");
+		}
+	}
+
 	onunload() {
 		console.log('The Review Dates plugin has been disabled and unloaded.');
 	}
 
 	createBlockHash(inputText: string): string { // Credit to https://stackoverflow.com/a/1349426
-		let obsidianApp = this.app;
-
 		let result = '';
 		var characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
 		var charactersLength = characters.length;
@@ -106,7 +127,7 @@ export default class Review extends Plugin {
 		let parsedResult = naturalLanguageDates.parseDate(someDate);
 		let inputDate = parsedResult.formattedString;
 
-		console.log("Date string to use: " + inputDate);
+		console.debug("Date string to use: " + inputDate);
 
 		// Get the folder path.
 		let notesFolder = this.settings.dailyNotesFolder;
@@ -116,15 +137,15 @@ export default class Review extends Plugin {
 		} else {
 			notesPath = "/" + notesFolder + "/";
 		}
-		console.log("The path to daily notes: " + notesPath);
+		console.debug("The path to daily notes: " + notesPath);
 
 		// Get the review section header.
 		let reviewHeading = this.settings.reviewSectionHeading;
-		console.log("The review section heading is: " + reviewHeading);
+		console.debug("The review section heading is: " + reviewHeading);
 
 		// Get the line prefix.
 		let reviewLinePrefix = this.settings.linePrefix;
-		console.log("The line prefix is: " + reviewLinePrefix);
+		console.debug("The line prefix is: " + reviewLinePrefix);
 
 		// If the date is recognized and valid
 		if (parsedResult.moment.isValid()) {
@@ -136,10 +157,10 @@ export default class Review extends Plugin {
 			if (someBlock != undefined) {
 				console.log("Checking for block:");
 				let lineBlockID = this.getBlock(someBlock, noteFile);
-				console.log(lineBlockID);
+				console.debug(lineBlockID);
 
 				if (this.getBlock(someBlock, noteFile) === "") { // The line is not already a block
-					console.log("This line is not currently a block. Adding a block ID.");
+					console.debug("This line is not currently a block. Adding a block ID.");
 					lineBlockID = this.createBlockHash(someBlock).toString();
 					let lineWithBlock = someBlock + " ^" + lineBlockID;
 					obsidianApp.vault.read(noteFile).then(function (result) {
@@ -158,10 +179,10 @@ export default class Review extends Plugin {
 				|| e.path === inputDate
 				|| e.basename === inputDate
 			)[0];
-			console.log("File found:" + dateFile);
+			console.debug("File found:" + dateFile);
 
 			if (!dateFile) { //the date file does not already exist
-				console.log("The daily note for the given date does not exist yet. Creating it, then appending the review section.")
+				console.debug("The daily note for the given date does not exist yet. Creating it, then appending the review section.")
 				let noteText = reviewHeading + "\n" + reviewLinePrefix + "[[" + noteLink + "]]";
 				// let newDateFile = obsidianApp.vault.create(notesPath + inputDate + ".md", noteText); //previous approach
 				let newDateFile = await createDailyNote(parsedResult.moment); // Use @liamcain's obsidian-daily-notes-interface to create a daily note with core-defined templates
@@ -175,7 +196,7 @@ export default class Review extends Plugin {
 				obsidianApp.vault.modify(newDateFile, noteText);
 				new Notice("Set note \"" + noteName + "\" for review on " + inputDate + ".");
 			} else {
-				console.log("The daily note already exists for the date given. Adding this note to it for review.")
+				console.debug("The daily note already exists for the date given. Adding this note to it for review.")
 				let previousNoteText = "";
 				obsidianApp.vault.read(dateFile).then(function (result) { // Get the text in the note. Search it for ## Review and append to that section. Else, append ## Review and the link to the note for review.
 					previousNoteText = result;
@@ -197,14 +218,6 @@ export default class Review extends Plugin {
 	}
 }
 
-class ReviewSettings {
-	dailyNotesFolder = "";
-	reviewSectionHeading = "## Review";
-	linePrefix = "- ";
-	defaultReviewDate = "tomorrow";
-	blockLinePrefix = "!";
-}
-
 class ReviewModal extends Modal {
 	constructor(app: App) {
 		super(app);
@@ -212,7 +225,7 @@ class ReviewModal extends Modal {
 
 	onOpen() {
 		let _this = this;
-		console.log(_this);
+		console.debug(_this);
 		let { contentEl } = this;
 		let inputDateField = new TextComponent(contentEl)
 			.setPlaceholder(this.app.plugins.getPlugin("review-obsidian").settings.defaultReviewDate);
@@ -249,7 +262,7 @@ class ReviewBlockModal extends Modal {
 		let editor = this.app.workspace.activeLeaf.view.sourceMode.cmEditor;
 		let cursor = editor.getCursor();
 		let lineText = editor.getLine(cursor.line);
-		console.log(_this);
+		console.debug(_this);
 		let { contentEl } = this;
 		let inputDateField = new TextComponent(contentEl)
 			.setPlaceholder(this.app.plugins.getPlugin("review-obsidian").settings.defaultReviewDate);
@@ -293,7 +306,7 @@ class ReviewSettingTab extends PluginSettingTab {
 					.setPlaceholder('')
 					.setValue(plugin.settings.dailyNotesFolder)
 					.onChange((value) => {
-						console.log("The new daily notes folder:" + value);
+						console.debug("The new daily notes folder:" + value);
 						plugin.settings.dailyNotesFolder = value;
 						plugin.saveData(plugin.settings);
 					})
