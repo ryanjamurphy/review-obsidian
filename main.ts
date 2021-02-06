@@ -299,19 +299,6 @@ class ReviewSettingTab extends PluginSettingTab {
 		containerEl.createEl('h2', { text: 'Review Settings' });
 
 		new Setting(containerEl)
-			.setName('Daily note location')
-			.setDesc('Set the path to your daily notes. Use the format "folder/subfolder". Do not use leading or trailing slashes "/".')
-			.addText((text) =>
-				text
-					.setPlaceholder('')
-					.setValue(plugin.settings.dailyNotesFolder)
-					.onChange((value) => {
-						console.debug("The new daily notes folder:" + value);
-						plugin.settings.dailyNotesFolder = value;
-						plugin.saveData(plugin.settings);
-					})
-			);
-		new Setting(containerEl)
 			.setName('Review section heading')
 			.setDesc('Set the heading to use for the review section. BE CAREFUL: it must be unique in each daily note.')
 			.addText((text) =>
