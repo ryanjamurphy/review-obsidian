@@ -1,5 +1,5 @@
 import { App, ButtonComponent, Modal, Notice, Plugin, PluginSettingTab, Setting, TextComponent } from 'obsidian';
-import { createDailyNote } from 'obsidian-daily-notes-interface';
+import { createDailyNote, getDailyNoteSettings } from 'obsidian-daily-notes-interface';
 
 interface IReviewSettings {
 	dailyNotesFolder: string;
@@ -22,7 +22,7 @@ export default class Review extends Plugin {
 	settings: IReviewSettings;
 
 	async onload() {
-		console.log('Loading the Review plugin.');
+		console.log('Loading the Review plugin v1.6.4.');
 
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, (await this.loadData()))
 
@@ -114,6 +114,8 @@ export default class Review extends Plugin {
 	async setReviewDate(someDate: string, someBlock?: string) {
 		let obsidianApp = this.app;
 		let naturalLanguageDates = obsidianApp.plugins.getPlugin('nldates-obsidian'); // Get the Natural Language Dates plugin.
+		let notesFolder = await getDailyNoteSettings().folder;
+
 
 		if (!naturalLanguageDates) {
 			new Notice("The Natural Language Dates plugin is not available. Please make sure it is installed and enabled before trying again.");
@@ -127,10 +129,10 @@ export default class Review extends Plugin {
 		let parsedResult = naturalLanguageDates.parseDate(someDate);
 		let inputDate = parsedResult.formattedString;
 
+
 		console.debug("Date string to use: " + inputDate);
 
 		// Get the folder path.
-		let notesFolder = this.settings.dailyNotesFolder;
 		let notesPath = "";
 		if (notesFolder === "") {
 			notesPath = "/"; // If the user is using the root for their daily notes, don't add a second /.
