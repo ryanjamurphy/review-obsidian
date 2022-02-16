@@ -10,8 +10,10 @@ Review integrates with (and therefore requires) the [Natural Language Dates plug
 
 ### Setup
 Make sure you _review_ (heh) the plugin's settings to assign:
-- Your daily notes folder (defaults to `/`); and
 - A heading for the review section (defaults to `## Review`).
+- A prefix for each line added when you invoke Review (e.g., 
+- A prefix for each block added when you invoke Review on a block (e.g., using `!` will make each block an embed automatically)
+- A default for each review (e.g., if you use `tomorrow`, you can just hit <kbd>enter</kbd> when you invoke Review to put the thing you're reviewing on tomorrow's daily note
 
 ### How to use
 
