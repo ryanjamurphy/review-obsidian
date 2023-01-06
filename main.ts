@@ -17,6 +17,11 @@ const DEFAULT_SETTINGS: IReviewSettings = {
 	blockLinePrefix: "!",
 }
 
+enum ReviewType {
+	Note,
+	Block,
+	Heading,
+}
 
 export default class Review extends Plugin {
 	settings: IReviewSettings;
@@ -40,7 +45,7 @@ export default class Review extends Plugin {
 				let leaf = this.app.workspace.activeLeaf;
 				if (leaf) {
 					if (!checking) {
-						new ReviewModal(this.app).open();
+						new ReviewModal(this.app, ReviewType.Note).open();
 					}
 					return true;
 				}
@@ -56,7 +61,23 @@ export default class Review extends Plugin {
 				let leaf = this.app.workspace.activeLeaf;
 				if (leaf) {
 					if (!checking) {
-						new ReviewBlockModal(this.app).open();
+						new ReviewModal(this.app, ReviewType.Block).open();
+					}
+					return true;
+				}
+				return false;
+			}
+		});
+
+		this.addCommand({
+			id: 'future-review-heading',
+			name: 'Add this heading to a daily note for review',
+
+			checkCallback: (checking: boolean) => {
+				let leaf = this.app.workspace.activeLeaf;
+				if (leaf) {
+					if (!checking) {
+						new ReviewModal(this.app, ReviewType.Heading).open();
 					}
 					return true;
 				}
@@ -97,38 +118,36 @@ export default class Review extends Plugin {
 		console.log("Checking if line '" + inputLine + "' is a block.");
 		let blockString = "";
 		if (noteBlocks) { // the file does contain blocks. If not, return ""
-			for (let eachBlock in noteBlocks) { // iterate through the blocks. 
+			for (let eachBlock in noteBlocks) { // iterate through the blocks.
 				console.log("Checking block ^" + eachBlock);
 				let blockRegExp = new RegExp("(" + eachBlock + ")$", "gim");
 				if (inputLine.match(blockRegExp)) { // if end of inputLine matches block, return it
 					blockString = eachBlock;
 					console.log("Found block ^" + blockString);
 					return blockString;
-				} 
+				}
 			}
 			return blockString;
-		} 
+		}
 		return blockString;
 	}
 
-	async setReviewDate(someDate: string, someBlock?: string) {
+	async setReviewDate(reviewDate: string, reviewType: ReviewType) {
 		let obsidianApp = this.app;
 		let naturalLanguageDates = obsidianApp.plugins.getPlugin('nldates-obsidian'); // Get the Natural Language Dates plugin.
 		let notesFolder = await getDailyNoteSettings().folder;
-
 
 		if (!naturalLanguageDates) {
 			new Notice("The Natural Language Dates plugin is not available. Please make sure it is installed and enabled before trying again.");
 			return;
 		}
 
-		if (someDate === "") {
-			someDate = this.settings.defaultReviewDate;
+		if (reviewDate === "") {
+			reviewDate = this.settings.defaultReviewDate;
 		}
 		// Use the Natural Language Dates plugin's processDate method to convert the input date into a daily note title.
-		let parsedResult = naturalLanguageDates.parseDate(someDate);
+		let parsedResult = naturalLanguageDates.parseDate(reviewDate);
 		let inputDate = parsedResult.formattedString;
-
 
 		console.debug("Date string to use: " + inputDate);
 
@@ -156,28 +175,49 @@ export default class Review extends Plugin {
 			let noteFile = obsidianApp.workspace.activeLeaf.view.file;
 			let noteLink = obsidianApp.metadataCache.fileToLinktext(noteFile, noteFile.path, true);
 
-			if (someBlock != undefined) {
-				console.log("Checking for block:");
-				let lineBlockID = this.getBlock(someBlock, noteFile);
-				console.debug(lineBlockID);
+			switch (reviewType) {
+				case ReviewType.Note:
+					break;
+				case ReviewType.Block:
+					let editor = this.app.workspace.activeLeaf.view.sourceMode.cmEditor;
+					let cursor = editor.getCursor();
+					let lineText = editor.getLine(cursor.line);
 
-				if (this.getBlock(someBlock, noteFile) === "") { // The line is not already a block
-					console.debug("This line is not currently a block. Adding a block ID.");
-					lineBlockID = this.createBlockHash(someBlock).toString();
-					let lineWithBlock = someBlock + " ^" + lineBlockID;
-					obsidianApp.vault.read(noteFile).then(function (result) {
-						let previousNoteText = result;
-						let newNoteText = previousNoteText.replace(someBlock, lineWithBlock);
-						obsidianApp.vault.modify(noteFile, newNoteText);
-					})
-				}
-				noteLink = noteLink + "#^" + lineBlockID;
-				reviewLinePrefix = this.settings.blockLinePrefix;
+					if (lineText != undefined) {
+						console.log("Checking for block:");
+						let lineBlockID = this.getBlock(lineText, noteFile);
+						console.debug(lineBlockID);
+
+						if (this.getBlock(lineText, noteFile) === "") { // The line is not already a block
+							console.debug("This line is not currently a block. Adding a block ID.");
+							lineBlockID = this.createBlockHash(lineText).toString();
+							let lineWithBlock = lineText + " ^" + lineBlockID;
+							obsidianApp.vault.read(noteFile).then(function (result) {
+								let previousNoteText = result;
+								let newNoteText = previousNoteText.replace(lineText, lineWithBlock);
+								obsidianApp.vault.modify(noteFile, newNoteText);
+							});
+						}
+						noteLink = noteLink + "#^" + lineBlockID;
+						reviewLinePrefix = this.settings.blockLinePrefix;
+					}
+
+					break;
+				case ReviewType.Heading:
+					let heading = this.findHeadingOfLine();
+					if (heading) {
+						heading = heading.replace(/^#(#*) /gm, "");
+						noteLink = noteLink + "#" + heading;
+					}
+
+					break;
+				default:
+					break;
 			}
 
 			// check if the daily note file exists
 			let files = obsidianApp.vault.getFiles();
-			const dateFile = files.filter(e => e.name === inputDate //hat-tip 🎩 to @MrJackPhil for this little workflow 
+			const dateFile = files.filter(e => e.name === inputDate //hat-tip 🎩 to @MrJackPhil for this little workflow
 				|| e.path === inputDate
 				|| e.basename === inputDate
 			)[0];
@@ -212,17 +252,54 @@ export default class Review extends Plugin {
 					obsidianApp.vault.modify(dateFile, newNoteText);
 					new Notice("Set note \"" + noteName + "\" for review on " + inputDate + ".");
 				});
-			}			
+			}
 		} else {
 			new Notice("You've entered an invalid date (note that \"two weeks\" will not work, but \"in two weeks\" will). The note was not set for review. Please try again.");
 		}
 		return;
 	}
+
+	lookupOffset(string: string, regex: RegExp, offset?: number) : number {
+		regex = (regex.global) ? regex : new RegExp(regex.source, "g" + (regex.ignoreCase ? "i" : "") + (regex.multiline ? "m" : ""));
+		if (typeof (offset) == "undefined") {
+			offset = string.length;
+		} else if(offset < 0) {
+			offset = 0;
+		}
+		var stringToWorkWith = string.substring(0, offset + 1);
+		var lastIndexOf = -1;
+		var nextStop = 0;
+		var result;
+		while((result = regex.exec(stringToWorkWith)) != null) {
+			lastIndexOf = result.index;
+			regex.lastIndex = ++nextStop;
+		}
+		return lastIndexOf;
+	}
+
+	findHeadingOfLine() : string | undefined {
+		let editor = this.app.workspace.activeLeaf.view.sourceMode.cmEditor;
+		let cursor = editor.getCursor();
+				cursor.ch = editor.getLine(cursor.line).length;
+
+		const cursorOffset = editor.posToOffset(cursor);
+		let headingOffset = this.lookupOffset(editor.getValue(), /^#(#*) /gm, cursorOffset);
+		// If not found from the cursor position, return undefined
+		if (headingOffset === -1) {
+			return undefined;
+		}
+
+    return editor.getLine(editor.offsetToPos(headingOffset).line);
+	}
 }
 
 class ReviewModal extends Modal {
-	constructor(app: App) {
+
+	reviewType: ReviewType;
+
+	constructor(app: App, reviewType: ReviewType) {
 		super(app);
+		this.reviewType = reviewType;
 	}
 
 	onOpen() {
@@ -235,51 +312,14 @@ class ReviewModal extends Modal {
 			.setButtonText("Set Review Date")
 			.onClick(() => {
 				let inputDate = inputDateField.getValue();
-				_this.app.plugins.getPlugin("review-obsidian").setReviewDate(inputDate);
+				_this.app.plugins.getPlugin("review-obsidian").setReviewDate(inputDate, _this.reviewType);
 				this.close();
 			});
 		inputDateField.inputEl.focus();
 		inputDateField.inputEl.addEventListener('keypress', function (keypressed) {
 			if (keypressed.key === 'Enter') {
 				var inputDate = inputDateField.getValue()
-				_this.app.plugins.getPlugin("review-obsidian").setReviewDate(inputDate);
-				_this.close();
-			}
-		});
-	}
-
-	onClose() {
-		let { contentEl } = this;
-		contentEl.empty();
-	}
-}
-
-class ReviewBlockModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		let _this = this;
-		let editor = this.app.workspace.activeLeaf.view.sourceMode.cmEditor;
-		let cursor = editor.getCursor();
-		let lineText = editor.getLine(cursor.line);
-		console.debug(_this);
-		let { contentEl } = this;
-		let inputDateField = new TextComponent(contentEl)
-			.setPlaceholder(this.app.plugins.getPlugin("review-obsidian").settings.defaultReviewDate);
-		let inputButton = new ButtonComponent(contentEl)
-			.setButtonText("Set Review Date")
-			.onClick(() => {
-				let inputDate = inputDateField.getValue();
-				_this.app.plugins.getPlugin("review-obsidian").setReviewDate(inputDate, lineText);
-				this.close();
-			});
-		inputDateField.inputEl.focus();
-		inputDateField.inputEl.addEventListener('keypress', function (keypressed) {
-			if (keypressed.key === 'Enter') {
-				var inputDate = inputDateField.getValue()
-				_this.app.plugins.getPlugin("review-obsidian").setReviewDate(inputDate, lineText);
+				_this.app.plugins.getPlugin("review-obsidian").setReviewDate(inputDate, _this.reviewType);
 				_this.close();
 			}
 		});
@@ -331,7 +371,7 @@ class ReviewSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName('Block review line prefix')
 			.setDesc('Set the prefix used when adding blocks to daily notes with Review. Use e.g., `- [ ] ` to link the block as a task, or `!` to create embeds.')
-			.addText((text) => 
+			.addText((text) =>
 				text
 					.setPlaceholder('!')
 					.setValue(plugin.settings.blockLinePrefix)
@@ -343,7 +383,7 @@ class ReviewSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName('Default review date')
 			.setDesc('Set a default date to be used when no date is entered. Use natural language: "Next Monday", "November 5th", and "tomorrow" all work.')
-			.addText((text) => 
+			.addText((text) =>
 				text
 					.setPlaceholder('')
 					.setValue(plugin.settings.defaultReviewDate)
@@ -352,12 +392,12 @@ class ReviewSettingTab extends PluginSettingTab {
 						plugin.saveData(plugin.settings);
 					})
 			);
-		
+
 		// containerEl.createEl('h3', { text: 'Preset review schedules' });
 
 		/*
 		TKTKTK: Figure out how to add a function to a button inside the setting element. Currently `doSomething`, below, throws errors.
 		containerEl.createEl('button', { text: "Add a new review schedule preset", attr: { onclick: "doSomething({ console.log('button clicked') });"}});
 		*/
-	}	
+	}
 }
