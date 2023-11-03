@@ -1,6 +1,6 @@
 {
   "name": "review-obsidian",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "description": "Add a link to the current note to a daily note on a future date (or a past date, you time traveller).",
   "main": "main.js",
   "repository": "ryanjamurphy/review-obsidian",
