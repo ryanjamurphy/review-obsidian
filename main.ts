@@ -5,6 +5,7 @@ interface IReviewSettings {
 	dailyNotesFolder: string;
 	reviewSectionHeading: string;
 	linePrefix: string;
+	headingPrefix: string;
 	defaultReviewDate: string;
 	blockLinePrefix: string;
 }
@@ -13,6 +14,7 @@ const DEFAULT_SETTINGS: IReviewSettings = {
 	dailyNotesFolder: "",
 	reviewSectionHeading: "## Review",
 	linePrefix: "- ",
+	headingPrefix: "",
 	defaultReviewDate: "tomorrow",
 	blockLinePrefix: "!",
 }
@@ -208,6 +210,7 @@ export default class Review extends Plugin {
 					if (heading) {
 						heading = heading.replace(/^#(#*) /gm, "");
 						noteLink = noteLink + "#" + heading;
+						reviewLinePrefix = this.settings.headingPrefix;
 					}
 
 					break;
@@ -365,6 +368,18 @@ class ReviewSettingTab extends PluginSettingTab {
 					.setValue(plugin.settings.linePrefix)
 					.onChange((value) => {
 						plugin.settings.linePrefix = value;
+						plugin.saveData(plugin.settings);
+					})
+			);
+		new Setting(containerEl)
+			.setName('Heading prefix')
+			.setDesc('Set the prefix to use for reviewed headings. You probably want this to be a - bulleted list item or an ! embed.')
+			.addText((text) =>
+				text
+					.setPlaceholder('- ')
+					.setValue(plugin.settings.headingPrefix)
+					.onChange((value) => {
+						plugin.settings.headingPrefix = value;
 						plugin.saveData(plugin.settings);
 					})
 			);
