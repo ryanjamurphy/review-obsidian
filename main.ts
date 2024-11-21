@@ -1,5 +1,5 @@
 import { App, ButtonComponent, Modal, Notice, Plugin, PluginSettingTab, Setting, TextComponent } from 'obsidian';
-import { createDailyNote, getDailyNoteSettings } from 'obsidian-daily-notes-interface';
+import { createDailyNote, getAllDailyNotes, getDailyNote, getDailyNoteSettings } from 'obsidian-daily-notes-interface';
 
 interface IReviewSettings {
 	dailyNotesFolder: string;
@@ -218,12 +218,8 @@ export default class Review extends Plugin {
 					break;
 			}
 
-			// check if the daily note file exists
-			let files = obsidianApp.vault.getFiles();
-			const dateFile = files.filter(e => e.name === inputDate //hat-tip 🎩 to @MrJackPhil for this little workflow
-				|| e.path === inputDate
-				|| e.basename === inputDate
-			)[0];
+			let dailyNotes = getAllDailyNotes();
+			let dateFile = getDailyNote(parsedResult.moment, dailyNotes);
 			console.debug("File found:" + dateFile);
 
 			if (!dateFile) { //the date file does not already exist
@@ -292,7 +288,7 @@ export default class Review extends Plugin {
 			return undefined;
 		}
 
-    return editor.getLine(editor.offsetToPos(headingOffset).line);
+		return editor.getLine(editor.offsetToPos(headingOffset).line);
 	}
 }
 
